@@ -1,43 +1,25 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // 构建输出设置
+  // 配置静态导出，支持GitHub Pages
   output: 'export',
-  
-  // 路径前缀（Vercel自动处理）
+  // 配置basePath（如果需要在子路径部署，可以在这里设置）
   basePath: '',
-  
-  // 环境变量处理
-  env: {
-    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
-  },
-  
-  // 安全设置
-  eslint: {
-    ignoreDuringBuilds: process.env.NODE_ENV === 'production',
-  },
-  
-  // TypeScript配置
-  typescript: {
-    ignoreBuildErrors: process.env.NODE_ENV === 'production',
-  },
-  
-  // 图片优化配置
+  // 确保图片不会尝试进行优化，因为GitHub Pages不支持Next.js的图片优化API
   images: {
-    // 对于静态导出，需要设置为true
     unoptimized: true,
-    // 支持的图片格式
-    formats: ['image/webp'],
   },
-  
-  // 压缩设置
+  // 确保没有服务器端渲染或API路由依赖
+  reactStrictMode: true,
+  // 压缩和最小化
   compress: true,
-  
-  // SWC最小化
   swcMinify: true,
-  
-  // 其他优化设置
-  productionBrowserSourceMaps: false,
+  // 调整eslint和typescript配置，确保开发环境能捕获错误
+  eslint: {
+    ignoreBuildErrors: process.env.NODE_ENV !== 'production',
+  },
+  typescript: {
+    ignoreBuildErrors: process.env.NODE_ENV !== 'production',
+  },
 }
 
 module.exports = nextConfig

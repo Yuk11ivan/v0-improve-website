@@ -1,67 +1,62 @@
-name: Deploy to Vercel
+name: Deploy to GitHub Pages
 
 on:
-  # 推送到main分支时部署到生产环境
+  # 推送到main分支时部署
   push:
     branches: ["main"]
-  # 推送到develop分支时部署到预览环境
-  push:
-    branches: ["develop"]
-  # Pull Request时创建预览部署
-  pull_request:
-    types: [opened, synchronize]
+
+  # 允许手动触发部署
+  workflow_dispatch:
+
+# 设置GitHub Pages部署权限
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 并发控制，确保只有一个部署在运行
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Checkout code
+      # 检出代码
+      - name: Checkout
         uses: actions/checkout@v4
       
+      # 设置Node.js环境
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
       
+      # 安装依赖
       - name: Install dependencies
         run: npm ci
       
-      - name: Install Vercel CLI
-        run: npm install -g vercel
+      # 构建项目（Next.js会导出到out目录）
+      - name: Build with Next.js
+        run: npm run build
       
-      - name: Pull Vercel Environment Information
-        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+      # 配置GitHub Pages
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
       
-      - name: Build Project
-        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
-      
-      - name: Deploy to Vercel Preview
-        id: deploy-preview
-        if: github.event_name == 'pull_request' || github.ref == 'refs/heads/develop'
-        run: |
-          URL=$(vercel deploy --preview --token=${{ secrets.VERCEL_TOKEN }})
-          echo "PREVIEW_URL=${URL}" >> $GITHUB_OUTPUT
-      
-      - name: Deploy to Vercel Production
-        if: github.ref == 'refs/heads/main'
-        run: |
-          vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
-      
-      - name: Comment Preview URL on PR
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+      # 上传构建产物
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const previewUrl = '${{ steps.deploy-preview.outputs.PREVIEW_URL }}';
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `🚀 Preview deployment available at: ${previewUrl}`
-            });
+          # 指向Next.js的导出目录
+          path: './out'
       
-      - name: Configure Vercel Project
-        run: |
-          vercel link --project=${{ secrets.VERCEL_PROJECT_ID }} --org=${{ secrets.VERCEL_ORG_ID }} --token=${{ secrets.VERCEL_TOKEN }}
+      # 部署到GitHub Pages
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
