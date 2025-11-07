@@ -34,16 +34,18 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "npm"
+          node-version: '20'
+          cache: 'npm'
       
       # 安装依赖
       - name: Install dependencies
-        run: npm ci
+        run: |
+          npm install
       
       # 构建项目（Next.js会导出到out目录）
       - name: Build with Next.js
-        run: npm run build
+        run: |
+          npm run build
       
       # 配置GitHub Pages
       - name: Setup Pages
